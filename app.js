@@ -1,32 +1,34 @@
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
+const { ApolloServer } = require("apollo-server-express");
+const typeDefs = require("./typeDefs");
+const resolvers = require("./resolvers");
 require("dotenv/config");
 
-const PORT = process.env.PORT || 5000;
+const startServer = async () => {
+  const PORT = process.env.PORT || 5000;
 
-//Middlewares
-// app.use('/todos', () => {
-//     console.log('hit this middleware')
-// })
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers
+  });
 
-//Imported Routes
-const todos = require('./routes/todos');
+  server.applyMiddleware({ app });
 
-//Routes
-app.get("/", (req, res) => {
-  res.send("home page");
-});
+  await mongoose
+    .connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    })
+    .then(() => console.log("connected to mongoDB"))
+    .catch(err => console.log(err));
 
-app.use('/todos', todos);
+  app.listen(PORT, () =>
+    console.log(
+      `App is running on https://localhost:${PORT}${server.graphqlPath}`
+    )
+  );
+};
 
-//Connect to DB
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-  })
-  .then(() => console.log("connected to mongoDB"))
-  .catch(err => console.log(err));
-
-app.listen(PORT, () => console.log(`App is running on PORT ${PORT}`));
+startServer();
